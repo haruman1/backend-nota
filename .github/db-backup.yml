@@ -1,0 +1,13 @@
+name: Backup Database
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # tiap 6 jam
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Backup Endpoint
+        run: curl -X GET https://v2.haruman.me/backup/run

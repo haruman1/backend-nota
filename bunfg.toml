@@ -1,0 +1,2 @@
+[entrypoint]
+index = "src/index.ts"
