@@ -13,7 +13,7 @@ const app = new Elysia()
     jwt({
       name: 'jwt',
       secret: process.env.JWT_SECRET!,
-      exp: '2h',
+      exp: '15m',
     })
   )
   .guard({

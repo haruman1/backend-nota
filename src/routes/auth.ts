@@ -3,6 +3,13 @@ import { hashPassword, comparePassword } from '../utils/password';
 import { query } from '../../mysql.config';
 import { jwtPlugin } from '../utils/jwt';
 import { generateUUID } from '../utils/uuid';
+import { randomUUID } from 'crypto';
+import {
+  getRefreshToken,
+  rotateRefreshToken,
+  saveRefreshToken,
+} from '../utils/RToken';
+
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .use(jwtPlugin)
 
@@ -47,7 +54,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   )
 
   .post(
-    '/sign-in',
+    '/login',
     async ({ body, jwt }) => {
       const { email, password } = body;
 
@@ -70,16 +77,19 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         return { success: false, message: 'Password salah' };
       }
 
-      const token = await jwt.sign({
+      const accesToken = await jwt.sign({
         id: user.id,
         email: user.email,
-        role: user.role,
       });
+      const refreshToken = crypto.randomUUID();
 
+      const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 hari
+      await saveRefreshToken(user.id, refreshToken, expiresAt);
       return {
         success: true,
         message: 'Login berhasil',
-        token,
+        accesToken,
+        refreshToken,
         timestamp: new Date(),
       };
     },
@@ -90,7 +100,42 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }),
     }
   )
+  .post(
+    '/refresh',
+    async ({ body, jwt }) => {
+      const { refreshToken } = body;
 
+      const stored = await getRefreshToken(refreshToken);
+      if (!stored) return { success: false, message: 'Invalid refresh token' };
+
+      if (new Date() > stored.expires_at) {
+        return { success: false, message: 'Refresh expired' };
+      }
+
+      // Generate new accessToken
+      const accessToken = await jwt.sign({
+        userId: stored.user_id,
+        exp: Math.floor(Date.now() / 1000) + 60 * 5,
+      });
+
+      // Rotate refresh token (best practice)
+      const newRefresh = crypto.randomUUID();
+      const newExpiresAt = new Date(Date.now() + 86400 * 1000 * 30);
+
+      await rotateRefreshToken(refreshToken, newRefresh, newExpiresAt);
+
+      return {
+        success: true,
+        accessToken,
+        refreshToken: newRefresh,
+      };
+    },
+    {
+      body: t.Object({
+        refreshToken: t.String(),
+      }),
+    }
+  )
   // 🔥 FIX BAGIAN INI!
   .get('/check', async ({ jwt, request, set }) => {
     const auth = request.headers.get('authorization');
