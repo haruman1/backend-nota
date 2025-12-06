@@ -149,7 +149,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
     try {
       const payload = await jwt.verify(token);
-      return { ok: true, user: payload };
+      return { success: true, user: payload };
     } catch {
       set.status = 401;
       return { message: 'Invalid token' };
