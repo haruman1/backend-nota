@@ -77,7 +77,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         return { success: false, message: 'Password salah' };
       }
 
-      const accesToken = await jwt.sign({
+      const accessToken = await jwt.sign({
         id: user.id,
         email: user.email,
       });
@@ -88,7 +88,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return {
         success: true,
         message: 'Login berhasil',
-        accesToken,
+        accessToken,
         refreshToken,
         timestamp: new Date(),
       };
