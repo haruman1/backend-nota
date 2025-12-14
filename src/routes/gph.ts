@@ -25,6 +25,7 @@ export const gphRoutes = new Elysia({ prefix: '/gph' })
          VALUES (?, ?, ?, ?)`,
           [name, email, phone, message]
         );
+        set.status = 200;
         return { message: 'Success' };
       } catch (error) {
         set.status = 500;
