@@ -7,6 +7,7 @@ import { stockRoutes } from '../src/routes/stock';
 import { cors } from '@elysiajs/cors';
 import { movementStockRoutes } from '../src/routes/movementStock';
 import { backupRoutes } from '../src/routes/backup';
+import { gphRoutes } from '../src/routes/gph';
 
 const app = new Elysia()
   .use(
@@ -41,6 +42,7 @@ const app = new Elysia()
   .use(authRoutes)
   .use(userRoutes)
   .use(stockRoutes)
+  .use(gphRoutes)
   .use(movementStockRoutes)
   .use(backupRoutes);
 
