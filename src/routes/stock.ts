@@ -5,19 +5,18 @@ import { query } from '../../mysql.config';
 import PDFDocument from 'pdfkit';
 import { generateUUID } from '../utils/uuid';
 import { ensureAdmin } from '../helpers/ensureAdmin';
+import { adminOnly } from '../middlewares/adminOnly';
 export const stockRoutes = new Elysia({ prefix: '/stocks' })
   .use(authMiddleware)
+  .use(adminOnly)
   .post(
     '/tambah',
     async ({ body, user }) => {
       if (!user) {
         throw new Error('UNAUTHORIZED');
       }
-      if (!user) {
-        throw new Error('UNAUTHORIZED');
-      }
-      const userCheck = await ensureAdmin(user.id);
-      if (userCheck.length === 0) {
+      const userCheck = await ensureAdmin(user.email);
+      if (!userCheck) {
         throw new Error('UNAUTHORIZED');
       }
       if (!body.nama_produk || !body.jumlah_produk || !body.harga_produk) {
@@ -30,7 +29,7 @@ export const stockRoutes = new Elysia({ prefix: '/stocks' })
           body.nama_produk,
           body.jumlah_produk,
           body.harga_produk,
-          userCheck[0].id,
+          userCheck.id,
         ]
       );
       return {
@@ -51,31 +50,23 @@ export const stockRoutes = new Elysia({ prefix: '/stocks' })
       }),
     }
   )
-  .get(
-    '/',
-    async ({ user }) => {
-      if (!user) {
-        throw new Error('UNAUTHORIZED');
-      }
-
-      const userCheck = await ensureAdmin(user.id);
-      const Stocks = await query(
-        'SELECT stock.id as Stock_ID, stock.nama_produk, stock.jumlah_produk, stock.harga_produk, user.name as Ditambahkan_oleh FROM stock LEFT JOIN user ON stock.user_id = user.id WHERE stock.user_id = ? AND stock.deleted_at IS NULL ORDER BY stock.created_at DESC',
-        [userCheck.id]
-      );
-      return {
-        success: true,
-        message: 'Daftar Stock',
-        data: Stocks,
-        timestamp: new Date(),
-      };
-    },
-    {
-      headers: t.Object({
-        authorization: t.String(),
-      }),
+  .get('/', async ({ user }) => {
+    if (!user) {
+      throw new Error('error disini 1');
     }
-  )
+
+    const userCheck = await ensureAdmin(user.email);
+    const Stocks = await query(
+      'SELECT stock.id as Stock_ID, stock.nama_produk, stock.jumlah_produk, stock.harga_produk, user.name as Ditambahkan_oleh FROM stock LEFT JOIN user ON stock.user_id = user.id AND stock.deleted_at IS NULL ORDER BY stock.created_at DESC',
+      [userCheck.id]
+    );
+    if (Stocks.length === 0) {
+      return { success: false, message: 'Tidak ada stock tersedia' };
+    }
+    if (Stocks.length > 0) {
+      return { success: true, message: 'Stocks found', data: Stocks };
+    }
+  })
   .get(
     '/:id',
     async ({ params, user }) => {
@@ -86,12 +77,12 @@ export const stockRoutes = new Elysia({ prefix: '/stocks' })
 
       const userCheck = await ensureAdmin(user.id);
       if (!userCheck) {
-        return { success: false, message: 'Unauthorized access' };
+        return { success: false, message: 'Unauthorized access 5' };
       }
       const Stock = await query(
         'SELECT stock.id as Stock_ID, stock.nama_produk, stock.jumlah_produk, stock.harga_produk, user.name as Ditambahkan_oleh FROM stock LEFT JOIN user ON stock.user_id = user.id WHERE stock.id = ? AND stock.user_id = ? LIMIT 1 ORDER BY stock.created_at DESC',
 
-        [id, userCheck[0].id]
+        [id, userCheck.id]
       );
       if (Stock.length === 0) {
         return { success: false, message: 'Stock tidak ditemukan' };
@@ -165,7 +156,7 @@ export const stockRoutes = new Elysia({ prefix: '/stocks' })
         user.id,
       ]);
       if (userCheck.length === 0) {
-        return { success: false, message: 'Unauthorized access' };
+        return { success: false, message: 'Unauthorized access 6' };
       }
       const stockCheck = await query(
         'SELECT id FROM stock WHERE id = ? AND user_id = ?',

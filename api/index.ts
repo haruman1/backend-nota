@@ -23,10 +23,10 @@ const app = new Elysia()
   })
   .onError(({ code, error }) => {
     if (code === 401) {
-      return { success: false, message: 'Unauthorized Access' };
+      return { success: false, message: 'Unauthorized Access 1' };
     }
     if (code === 'NOT_FOUND') {
-      return { success: false, message: 'Unauthorized Access' };
+      return { success: false, message: 'Unauthorized Access 2' };
     }
   })
   .get('/', () => 'Hello Elysia')

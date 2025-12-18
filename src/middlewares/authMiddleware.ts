@@ -1,35 +1,36 @@
 // src/middlewares/authMiddleware.ts
 import { Elysia } from 'elysia';
-import { jwt } from '@elysiajs/jwt';
-import { AuthUser } from '../types/jwt';
-
+import { isAuthUser } from '../utils/isAuthUser';
 export const authMiddleware = new Elysia()
-  .use(jwt({ secret: process.env.JWT_SECRET! }))
-  .derive(async ({ jwt, request }) => {
-    const auth = request.headers.get('authorization');
 
-    if (!auth || !auth.startsWith('Bearer ')) throw new Error('UNAUTHORIZED');
-
-    const token = auth.split(' ')[1];
-
+  /**
+   * Ambil user dari HttpOnly Cookie
+   */
+  .derive(async ({ jwt, cookie }) => {
+    const token = cookie.accessToken?.value;
+    if (!token) return { user: null };
+    console.log('COOKIE:', cookie);
     try {
-      const payload = await jwt.verify(token);
+      const payload = await jwt.verify(String(token));
 
-      // Pastikan tidak pernah false
-      const user = (payload || null) as AuthUser | null;
+      if (!isAuthUser(payload)) return { user: null };
 
-      return { user };
-    } catch {
+      return { user: payload };
+    } catch (error) {
+      console.error(error);
       return { user: null };
     }
   })
+
+  /**
+   * Block request kalau tidak authenticated
+   */
   .onBeforeHandle(({ user, set }) => {
     if (!user) {
       set.status = 401;
       return {
         success: false,
-        message: 'Unauthorized Access',
+        message: 'Unauthorized Access 4',
       };
     }
-  })
-  .as('global');
+  });
