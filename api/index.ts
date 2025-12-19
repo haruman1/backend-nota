@@ -40,8 +40,6 @@ const app = new Elysia()
   .use(openapi())
   .use(authRoutes)
   .use(userRoutes)
-  .use(stockRoutes)
-  .use(movementStockRoutes)
   .use(backupRoutes);
 
 // ❗ Vercel tidak boleh pakai .listen(), jadi hilangkan
