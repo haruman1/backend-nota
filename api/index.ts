@@ -1,7 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
 import { authRoutes } from '../src/routes/auth';
-import { userRoutes } from '../src/routes/users';
 import openapi from '@elysiajs/openapi';
 import { cors } from '@elysiajs/cors';
 import { backupRoutes } from '../src/routes/backup';
@@ -37,7 +36,6 @@ const app = new Elysia()
   )
   .use(openapi())
   .use(authRoutes)
-  .use(userRoutes)
   .use(backupRoutes);
 
 // ❗ Vercel tidak boleh pakai .listen(), jadi hilangkan
