@@ -4,7 +4,6 @@ import { cors } from '@elysiajs/cors';
 import openapi from '@elysiajs/openapi';
 
 import { authRoutes } from '../src/routes/auth';
-import { userRoutes } from '../src/routes/users';
 import { backupRoutes } from './routes/backup';
 import { gphRoutes } from './routes/gph';
 
@@ -40,7 +39,6 @@ const app = new Elysia()
 
   .use(openapi())
   .use(authRoutes)
-  .use(userRoutes)
 
   .use(backupRoutes)
   .use(gphRoutes);
