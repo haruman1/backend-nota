@@ -29,14 +29,6 @@ const app = new Elysia()
       exp: '2h',
     })
   )
-
-  /* ❌ HAPUS GUARD GLOBAL */
-  // .guard({
-  //   headers: t.Object({
-  //     authorization: t.Optional(t.String()),
-  //   }),
-  // })
-
   .onError(({ code }) => {
     if (code === 401) {
       return { success: false, message: 'Unauthorized Access 3' };

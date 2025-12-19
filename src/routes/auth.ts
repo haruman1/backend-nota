@@ -3,8 +3,6 @@ import { hashPassword, comparePassword } from '../utils/password';
 import { query } from '../../mysql.config';
 import { jwtPlugin } from '../utils/jwt';
 import { generateUUID } from '../utils/uuid';
-<<<<<<< Updated upstream
-=======
 import { randomUUID } from 'crypto';
 import {
   getRefreshToken,
@@ -13,7 +11,6 @@ import {
 } from '../utils/RToken';
 import { accessCookieOptions, refreshCookieOptions } from '../utils/cookies';
 
->>>>>>> Stashed changes
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .use(jwtPlugin)
 
@@ -51,13 +48,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
   /* ================= LOGIN ================= */
   .post(
-<<<<<<< Updated upstream
-    '/sign-in',
-    async ({ body, jwt }) => {
-=======
     '/login',
     async ({ body, jwt, set }) => {
->>>>>>> Stashed changes
       const { email, password } = body;
 
       const users = await query(
@@ -77,19 +69,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         return { message: 'Password salah' };
       }
 
-<<<<<<< Updated upstream
-      const token = await jwt.sign({
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      });
-
-      return {
-        success: true,
-        message: 'Login berhasil',
-        token,
-        timestamp: new Date(),
-=======
       // Access Token (short-lived)
       const accessToken = await jwt.sign({
         id: user.id,
@@ -106,7 +85,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       set.cookie!.accessToken = {
         value: accessToken,
         ...accessCookieOptions,
->>>>>>> Stashed changes
       };
 
       set.cookie!.refreshToken = {
@@ -124,19 +102,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     }
   )
 
-<<<<<<< Updated upstream
-  // 🔥 FIX BAGIAN INI!
-  .get('/check', async ({ jwt, request, set }) => {
-    const auth = request.headers.get('authorization');
-
-    if (!auth) {
-=======
   /* ================= REFRESH ================= */
   .post('/refresh', async ({ jwt, cookie, set }) => {
     const refreshToken = String(cookie.refreshToken?.value || '');
 
     if (!refreshToken) {
->>>>>>> Stashed changes
       set.status = 401;
       return { message: 'No refresh token' };
     }
@@ -176,20 +146,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   /* ================= CHECK AUTH ================= */
   .get('/check', async ({ jwt, cookie, set }) => {
     const token = cookie.accessToken?.value;
-
+    console.log('Cookie accessToken:', token);
     if (!token) {
       set.status = 401;
       return { message: 'Unauthenticated' };
     }
 
     try {
-<<<<<<< Updated upstream
-      const payload = await jwt.verify(token);
-      return { ok: true, user: payload };
-=======
       const payload = await jwt.verify(String(token));
       return { success: true, user: payload };
->>>>>>> Stashed changes
     } catch {
       set.status = 401;
       return { message: 'Invalid token' };
