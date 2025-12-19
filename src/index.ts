@@ -5,8 +5,6 @@ import openapi from '@elysiajs/openapi';
 
 import { authRoutes } from '../src/routes/auth';
 import { userRoutes } from '../src/routes/users';
-import { stockRoutes } from '../src/routes/stock';
-import { movementStockRoutes } from './routes/movementStock';
 import { backupRoutes } from './routes/backup';
 import { gphRoutes } from './routes/gph';
 

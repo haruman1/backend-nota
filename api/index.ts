@@ -3,9 +3,7 @@ import { jwt } from '@elysiajs/jwt';
 import { authRoutes } from '../src/routes/auth';
 import { userRoutes } from '../src/routes/users';
 import openapi from '@elysiajs/openapi';
-import { stockRoutes } from '../src/routes/stock';
 import { cors } from '@elysiajs/cors';
-import { movementStockRoutes } from '../src/routes/movementStock';
 import { backupRoutes } from '../src/routes/backup';
 
 const app = new Elysia()
