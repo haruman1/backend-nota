@@ -24,6 +24,13 @@ export async function deleteRefreshToken(token: string) {
 export async function deleteRefreshTokenByUser(userId: string) {
   await query(`DELETE FROM refresh_tokens WHERE user_id = ?`, [userId]);
 }
+export async function updateLogoutTokens(token: string) {
+  await query(
+    `UPDATE refresh_tokens
+     SET revoked = 1 WHERE token = ?`,
+    [token]
+  );
+}
 export async function rotateRefreshToken(
   oldToken: string,
   newToken: string,

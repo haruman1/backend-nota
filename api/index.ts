@@ -29,7 +29,7 @@ const app = new Elysia()
   .get('/', () => 'Hello Elysia')
   .use(
     cors({
-      origin: ['*'],
+      origin: ['http://localhost:4321', 'https://accounts.haruman.me'],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     })

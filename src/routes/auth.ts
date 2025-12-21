@@ -8,8 +8,16 @@ import {
   getRefreshToken,
   rotateRefreshToken,
   saveRefreshToken,
+  updateLogoutTokens,
 } from '../utils/RToken';
 import { accessCookieOptions, refreshCookieOptions } from '../utils/cookies';
+import {
+  checkBruteforce,
+  clearBruteforce,
+  recordFailure,
+} from '../utils/bruteforce';
+import { detectSuspiciousLogin, saveLoginAudit } from '../utils/suspicious';
+import { rateLimit } from '../utils/rateLimit';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .use(jwtPlugin)
@@ -49,100 +57,145 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   /* ================= LOGIN ================= */
   .post(
     '/login',
-    async ({ body, jwt, set }) => {
-      const { email, password } = body;
+    async ({ body, request, cookie, params }) => {
+      const { email, password, redirect } = body;
+      const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
+      const ua = request.headers.get('user-agent') ?? '';
+
+      if (!rateLimit(ip)) {
+        return new Response('Too many requests', { status: 429 });
+      }
+
+      if (!(await checkBruteforce(email, ip))) {
+        return new Response('Blocked temporarily', { status: 429 });
+      }
 
       const users = await query(
-        'SELECT id, email, password, role FROM user WHERE email = ?',
+        'SELECT id, password FROM user WHERE email = ?',
         [email]
       );
-
       const user = users[0];
-      if (!user) {
-        set.status = 401;
-        return { message: 'Email tidak ditemukan' };
+
+      if (!user || !(await comparePassword(password, user.password))) {
+        await recordFailure(email, ip);
+        return new Response('Unauthorized', { status: 401 });
       }
 
-      const match = await comparePassword(password, user.password);
-      if (!match) {
-        set.status = 401;
-        return { message: 'Password salah' };
+      await clearBruteforce(email, ip);
+
+      const suspicious = await detectSuspiciousLogin(user.id, ip, ua);
+      if (suspicious) {
+        // bisa: kirim email / OTP / alert
+        console.warn('⚠️ Suspicious login detected');
       }
 
-      // Access Token (short-lived)
-      const accessToken = await jwt.sign({
-        id: user.id,
-        role: user.role,
-      });
+      await saveLoginAudit(user.id, ip, ua);
 
-      // Refresh Token (long-lived)
       const refreshToken = randomUUID();
-      const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
+      await saveRefreshToken(
+        user.id,
+        refreshToken,
+        new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
+      );
 
-      await saveRefreshToken(user.id, refreshToken, expiresAt);
-
-      // 🔐 SET COOKIE
-      set.cookie!.accessToken = {
-        value: accessToken,
-        ...accessCookieOptions,
-      };
-
-      set.cookie!.refreshToken = {
+      cookie.refreshToken.set({
         value: refreshToken,
         ...refreshCookieOptions,
-      };
+      });
 
-      return { success: true, message: 'Login berhasil' };
+      return Response.redirect(redirect, 302);
     },
     {
       body: t.Object({
         email: t.String(),
         password: t.String(),
+        redirect: t.String(),
       }),
     }
   )
+  .get('/verify-token', async ({ request, jwt }) => {
+    const token =
+      request.headers.get('authorization')?.replace('Bearer ', '') ||
+      new URL(request.url).searchParams.get('token');
+
+    if (!token) {
+      return Response.redirect('http://localhost:4321', 302);
+    }
+
+    const payload = await jwt.verify(token);
+    if (!payload) {
+      return Response.redirect('http://localhost:4321', 302);
+    }
+
+    return payload;
+  })
 
   /* ================= REFRESH ================= */
-  .post('/refresh', async ({ jwt, cookie, set }) => {
+  .post('/exchange', async ({ jwt, cookie }) => {
     const refreshToken = String(cookie.refreshToken?.value || '');
-
     if (!refreshToken) {
-      set.status = 401;
-      return { message: 'No refresh token' };
+      return new Response('Unauthorized', { status: 401 });
     }
 
     const stored = await getRefreshToken(refreshToken);
-    if (!stored || new Date() > stored.expires_at) {
-      set.status = 401;
-      return { message: 'Invalid refresh token' };
+    if (!stored || new Date() > stored.expires_at || stored.revoked) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    const accessToken = await jwt.sign({
+      sub: stored.user_id,
+      role: stored.role,
+    });
+
+    return {
+      success: true,
+      message: 'Refresh token diperbarui',
+      accessToken,
+    };
+  })
+  .post('/refresh', async ({ jwt, cookie }) => {
+    const refreshToken = String(cookie.refreshToken?.value || '');
+    if (!refreshToken) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    const stored = await getRefreshToken(refreshToken);
+    if (!stored || stored.revoked) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
     const newAccessToken = await jwt.sign({
-      id: stored.user_id,
+      sub: stored.user_id,
+      role: stored.role,
     });
 
     const newRefreshToken = randomUUID();
     const newExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
-    if (!refreshToken) {
-      set.status = 401;
-      return { message: 'Invalid refresh token' };
-    }
     await rotateRefreshToken(refreshToken, newRefreshToken, newExpiresAt);
 
-    set.cookie!.accessToken = {
-      value: newAccessToken,
-      ...accessCookieOptions,
-    };
-
-    set.cookie!.refreshToken = {
+    cookie.refreshToken.set({
       value: newRefreshToken,
       ...refreshCookieOptions,
-    };
+    });
 
-    return { success: true };
+    return { accessToken: newAccessToken };
   })
+  .get('/verify', async ({ jwt, headers }) => {
+    const auth = headers.authorization;
+    if (!auth) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
+    const token = auth.replace('Bearer ', '');
+    const payload = await jwt.verify(token);
+
+    if (!payload) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    return payload;
+  })
   /* ================= CHECK AUTH ================= */
   .get('/check', async ({ jwt, cookie, set }) => {
     const token = cookie.accessToken?.value;
@@ -162,7 +215,13 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   })
 
   /* ================= LOGOUT ================= */
-  .post('/logout', async ({ set }) => {
+  .post('/logout', async ({ set, cookie }) => {
+    const refreshToken = String(cookie.refreshToken?.value || '');
+    if (refreshToken) {
+      await updateLogoutTokens(refreshToken);
+    }
+    cookie.refreshToken.remove();
+
     set.cookie!.accessToken = {
       value: '',
       path: '/',

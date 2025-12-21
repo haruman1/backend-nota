@@ -6,13 +6,14 @@ import openapi from '@elysiajs/openapi';
 import { authRoutes } from '../src/routes/auth';
 import { backupRoutes } from './routes/backup';
 import { gphRoutes } from './routes/gph';
+import { stockRoutes } from './routes/stock';
 
 const app = new Elysia()
 
   /* 🔥 CORS HARUS PALING ATAS */
   .use(
     cors({
-      origin: ['http://localhost:4321'],
+      origin: ['http://localhost:4321', 'https://accounts.haruman.me'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     })
@@ -39,7 +40,7 @@ const app = new Elysia()
 
   .use(openapi())
   .use(authRoutes)
-
+  .use(stockRoutes)
   .use(backupRoutes)
   .use(gphRoutes);
 

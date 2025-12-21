@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login SSO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f4f6f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    form {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      width: 320px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.1);
+    }
+    h1 {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<form method="POST" action="/auth/login">
+  <h1>SSO Login</h1>
+
+  <input type="email" name="email" placeholder="Email" required />
+  <input type="password" name="password" placeholder="Password" required />
+
+  <!-- redirect target -->
+  <input
+    type="hidden"
+    name="redirect"
+    value=""
+    id="redirect"
+  />
+
+  <button type="submit">Login</button>
+</form>
+
+<script>
+  // ambil ?redirect= dari URL
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get('redirect');
+
+  if (redirect) {
+    document.getElementById('redirect').value = redirect;
+  }
+</script>
+
+</body>
+</html>
