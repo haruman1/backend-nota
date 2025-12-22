@@ -98,12 +98,19 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
       );
 
+      console.log('Refresh Token saved:', refreshToken);
       cookie.refreshToken.set({
         value: refreshToken,
         ...refreshCookieOptions,
       });
-
-      return Response.redirect(redirect, 302);
+      console.log(
+        'Refresh Token cookie set with options:',
+        refreshCookieOptions
+      );
+      return {
+        success: true,
+        redirect: redirect,
+      };
     },
     {
       body: t.Object({
@@ -133,6 +140,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   /* ================= REFRESH ================= */
   .post('/exchange', async ({ jwt, cookie }) => {
     const refreshToken = String(cookie.refreshToken?.value || '');
+    console.log('Received refresh token from cookie:', refreshToken);
     if (!refreshToken) {
       return new Response('Unauthorized', { status: 401 });
     }
@@ -146,7 +154,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       sub: stored.user_id,
       role: stored.role,
     });
-
+    cookie.accessToken.set({
+      value: accessToken,
+      ...accessCookieOptions,
+    });
+    console.log('Generated new access token for user:', accessToken);
     return {
       success: true,
       message: 'Refresh token diperbarui',
@@ -235,4 +247,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     };
 
     return { success: true, message: 'Logout berhasil' };
+  })
+  .onError(({ code, error }) => {
+    if (code === 401) {
+      return { success: false, message: 'Unauthorized Access' };
+    }
+    if (code === 'VALIDATION') {
+      return {
+        success: false,
+        message: error.message ?? 'Invalid request',
+      };
+    }
   });

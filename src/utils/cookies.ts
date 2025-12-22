@@ -1,27 +1,30 @@
 import type { CookieOptions } from 'elysia';
-
+const isProd = process.env.NODE_ENV === 'production';
 export const accessCookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: true, // localhost
-  sameSite: 'none', // 🔥 WAJIB
-  domain: 'localhost', // sesuaikan dengan domain kalian
+  secure: isProd, // localhost
+  sameSite: isProd ? 'none' : 'lax',
+  domain: isProd ? '.haruman.me' : undefined,
+  // ❌ JANGAN SET domain di localhost
   path: '/',
-  maxAge: 60 * 5, // 5 menit
+  maxAge: 60 * 5,
 };
 
 export const refreshCookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: true,
-  sameSite: 'none',
-  domain: 'localhost',
-  path: '/auth/refresh',
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'lax',
+  domain: isProd ? '.haruman.me' : undefined,
+  // ❌ JANGAN SET domain di localhost
+  path: '/',
   maxAge: 60 * 60 * 24 * 30,
 };
+
 export const csrfCookieOptions: CookieOptions = {
-  httpOnly: false, // HARUS false (dibaca JS)
-  secure: true,
-  sameSite: 'none' as const,
-  domain: 'localhost',
+  httpOnly: false,
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'lax',
+  domain: isProd ? '.haruman.me' : undefined,
   path: '/',
-  maxAge: 60 * 60 * 24, // 1 hari
+  maxAge: 60 * 60 * 24,
 };
