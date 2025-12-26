@@ -226,26 +226,22 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   })
 
   /* ================= LOGOUT ================= */
-  .post('/logout', async ({ set, cookie }) => {
+  .post('/logout', async ({ cookie }) => {
     const refreshToken = String(cookie.refreshToken?.value || '');
+
     if (refreshToken) {
+      // ❗ revoke di database
       await updateLogoutTokens(refreshToken);
     }
+
+    // ❌ hapus cookie
     cookie.refreshToken.remove();
+    cookie.accessToken?.remove();
 
-    set.cookie!.accessToken = {
-      value: '',
-      path: '/',
-      maxAge: 0,
+    return {
+      success: true,
+      message: 'Logout successful',
     };
-
-    set.cookie!.refreshToken = {
-      value: '',
-      path: '/auth/refresh',
-      maxAge: 0,
-    };
-
-    return { success: true, message: 'Logout berhasil' };
   })
   .onError(({ code, error }) => {
     if (code === 401) {
