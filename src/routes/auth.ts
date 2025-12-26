@@ -58,7 +58,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/login',
     async ({ body, request, cookie, params }) => {
-      const { email, password, redirect } = body;
+      const { email, password } = body;
       const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
       const ua = request.headers.get('user-agent') ?? '';
 
@@ -109,7 +109,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       );
       return {
         success: true,
-        redirect: redirect,
       };
     },
     {
