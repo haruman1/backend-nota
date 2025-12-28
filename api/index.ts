@@ -31,7 +31,7 @@ const app = new Elysia()
     cors({
       origin: [
         'http://localhost:4321',
-        'http://localhost:4322'
+        'http://localhost:4322',
         'https://accounts.haruman.me',
         'https://dashboard.haruman.me',
         'https://timker4.haruman.me',
